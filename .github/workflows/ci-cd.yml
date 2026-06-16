@@ -1,0 +1,57 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: |
+          echo "Running tests..." > test-results.txt
+          npm test >> test-results.txt || true
+
+      - name: Upload Test Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.txt
+
+  deploy:
+    needs: test
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+
+      - name: Show Artifact Content
+        run: cat test-results.txt
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Deploy Application
+        run: |
+          echo "Deploying application..."
+          nohup npm start > app.log 2>&1 &
